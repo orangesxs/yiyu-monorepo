@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yiyu
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-yiyu_test_2026}
+      POSTGRES_DB: yiyu
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yiyu -d yiyu"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build: ../yiyu-server
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: yiyu
+      DB_PASSWORD: ${DB_PASSWORD:-yiyu_test_2026}
+      DB_NAME: yiyu
+      # DATABASE_URL 由此项拼接的分量组成,见 .env.example 约定
+      DATABASE_URL: postgresql://yiyu:${DB_PASSWORD:-yiyu_test_2026}@db:5432/yiyu
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string}
+      JWT_EXPIRES: 7d
+      PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ../yiyu
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - server
+
+volumes:
+  pgdata:
