@@ -1,0 +1,35 @@
+# 「一隅」自动部署:push 到 main → SSH 到服务器拉最新代码并重建容器
+#
+# 前置条件(已配置):
+#   仓库 Secrets:
+#     - DEPLOY_SSH_KEY : 部署专用 SSH 私钥(公钥已追加到服务器 ~/.ssh/authorized_keys)
+#   仓库 Variables:
+#     - DEPLOY_HOST : 服务器公网 IP
+#   服务器上:/root/yiyu-monorepo 已完成首次手动部署(deploy/.env 已生成)
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false   # 部署不互相打断,排队执行
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 服务器拉取代码并重建容器
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true          # 任一命令失败即整体失败
+          script: |
+            cd /root/yiyu-monorepo
+            git pull --ff-only
+            cd deploy
+            docker compose up -d --build
+            docker compose ps

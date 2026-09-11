@@ -28,3 +28,7 @@ lerna-debug.log*
 
 # 部署敏感配置
 deploy/.env
+
+# 部署 SSH 密钥(仅本地保存,配到 GitHub Secrets 后可删)
+deploy_key
+deploy_key.pub
