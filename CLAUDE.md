@@ -19,7 +19,7 @@ pnpm preview      # 预览构建产物,端口 4173
 - 生产:`VITE_API_BASE` 环境变量指向后端地址。
 - 请求层 `src/shared/api/http.ts`:Bearer token 自动注入(`yiyu-token` localStorage);**响应拦截器统一解包 envelope**(后端全部接口返回 `{success, code, message, data, timestamp}`,拦截器按 `success` 判定成败、直接返回 `data` 本体;**message 有值才 toast**(成功恒为空串不提示,失败中文提示),业务层拿到的就是数据);**401 清 token 回登录页**(登录页自身除外);业务错误(中文 message)直接 ElMessage toast,调用方 catch 里不必重复提示。
 - 全部接口封装在 `src/shared/api/index.ts`(authApi / profileApi / inviteApi / ledgerApi / portalApi / adminApi + DTO 类型)。**路径带业务域前缀**:ledger 组 `/ledger/*`、我的邀请码 `/profile/invite-codes`。
-- 后端契约详见 `../yiyu-server/docs/API契约.md` 与 `数据库设计.md`。seed 账号:`admin`(admin/admin123456,超管,无业务数据)/`yiyu`(yiyu/yiyu123456,普通用户,演示数据主人);演示邀请码 `LLKK2345`/`MMNN6789`。
+- 后端契约详见 `../yiyu-server/docs/API契约.md` 与 `数据库设计.md`。seed 双模式(SEED_MODE):本地 demo(admin + yiyu/yiyu123456 演示数据,邀请码 LLKK2345/MMNN6789);部署 minimal(仅 admin/admin123456,无业务数据)。
 
 ## 技术栈
 

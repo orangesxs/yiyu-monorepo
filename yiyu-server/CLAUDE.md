@@ -63,9 +63,9 @@ docs/                 # 数据库设计.md · API契约.md
 
 `DATABASE_URL`(本地 `postgresql://postgres@localhost:5432/yiyu`)· `JWT_SECRET` · `JWT_EXPIRES=7d` · `INVITE_MAX_UNUSED=5` · `PORT=3000` · `CORS_ORIGINS`
 
-## seed 基线
+## seed 基线(SEED_MODE 双模式)
 
-2 用户:`admin`(admin/admin123456,超管,无业务数据)· `yiyu`(yiyu/yiyu123456,普通用户,演示数据主人)· 预置分类 32(支 9根23子 + 收 5根)· yiyu 自定义分类(装修/旅行)· 3 账本 · **593 笔流水(锚定真实当前日期生成,数据始终"新鲜")** · 2 邀请码(LLKK2345/MMNN6789)· 21 日志。seed 内部用可读 key(`u2`/`b1`/`food` 等)建映射,**落库 ID 全部为 Prisma 生成的 cuid**,与运行时数据格式一致。
+`SEED_MODE` 环境变量控制:**demo**(默认,本地开发)admin 超管 + yiyu 演示用户(45 分类 · 3 账本 · 593 笔流水锚定当前日期 · 2 邀请码 · 21 日志);**minimal**(部署)仅 admin 超管 + 37 全局预置分类,**无任何业务数据**——普通用户走注册(admin 后台生成邀请码)。seed 内部用可读 key 建映射,落库 ID 全部为 cuid。容器启动经 `docker-entrypoint.sh`:migrate deploy → **仅用户表为空时才 seed**(重启不覆盖数据),`SEED_MODE` 默认 minimal。
 
 ## 文档
 

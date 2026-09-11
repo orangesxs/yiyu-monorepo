@@ -15,6 +15,8 @@ COPY --from=build /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 EXPOSE 3000
-# 启动前先跑迁移,再起服务
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node dist/main.js"]
+# 迁移 + 首次初始化 seed(见 docker-entrypoint.sh;SEED_MODE 控制 demo/minimal)
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -1,15 +1,17 @@
 /**
- * 「一隅」种子数据:把前端 mock 时代的演示数据导入 PostgreSQL。
- * - 用户 u1 admin/admin123456(超管,无业务数据)+ u2 yiyu/yiyu123456(普通用户,演示数据主人)
- * - 预置分类(支出 9 根 + 收入 5 根,内容照搬前端 mock)+ u2 的装修/旅行自定义分类
- * - u2 的三个账本与流水(生成器移植自前端 ledger/mock,**锚定真实当前日期**,数据常新)
- * - 2 张未使用邀请码、约 21 条系统日志(锚定最近 7 天)
+ * 「一隅」种子数据,两种模式(SEED_MODE 环境变量):
+ * - demo(默认,开发环境):admin 超管 + yiyu 演示用户(预置/自定义分类、
+ *   3 账本、593 笔流水、2 邀请码、21 日志,流水锚定真实当前日期)
+ * - minimal(部署环境):仅 admin 超管账号 + 全局预置分类,无任何业务数据;
+ *   普通用户由注册(邀请码)产生,邀请码由 admin 在后台生成
  * 可重复执行:先清空全部表再写入。
  */
 import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
+/** 'demo' | 'minimal' */
+const SEED_MODE = process.env.SEED_MODE === 'minimal' ? 'minimal' : 'demo'
 
 /* ───────────────────────── 工具 ───────────────────────── */
 
@@ -53,8 +55,10 @@ function daysAgo(n: number, hour = 12, minute = 0): Date {
 
 const USER_SEED = [
   { key: 'u1', username: 'admin', password: 'admin123456', nickname: '管理员', avatar: '🧑‍💻', role: 'admin', status: 'active', registeredAt: daysAgo(125, 9, 10), lastActiveAt: daysAgo(0, 21, 36), bio: '系统管理员。' },
-  { key: 'u2', username: 'yiyu', password: 'yiyu123456', nickname: '一隅', avatar: '👩', role: 'user', status: 'active', registeredAt: daysAgo(111, 14, 20), lastActiveAt: daysAgo(0, 19, 2), bio: '认真记账,好好生活。' },
 ]
+
+/** 仅 demo 模式写入的演示用户 */
+const DEMO_USER = { key: 'u2', username: 'yiyu', password: 'yiyu123456', nickname: '一隅', avatar: '👩', role: 'user', status: 'active', registeredAt: daysAgo(111, 14, 20), lastActiveAt: daysAgo(0, 19, 2), bio: '认真记账,好好生活。' }
 
 /* ───────────────────────── 预置分类(照搬前端 mock) ───────────────────────── */
 
@@ -287,8 +291,9 @@ async function main() {
   // key → 真实 cuid 映射,后续外键引用一律查此表
   const ids: Record<string, string> = {}
 
-  console.log('写入用户 admin + yiyu…')
-  for (const { key, password, ...u } of USER_SEED) {
+  console.log(`写入用户(mode=${SEED_MODE})…`)
+  const users = SEED_MODE === 'demo' ? [...USER_SEED, DEMO_USER] : USER_SEED
+  for (const { key, password, ...u } of users) {
     const user = await prisma.user.create({
       data: { ...u, passwordHash: await bcrypt.hash(password, 10), birthday: null },
     })
@@ -307,6 +312,20 @@ async function main() {
       })
       ids[ch.key] = child.id
     }
+  }
+
+  // 以下业务数据仅 demo 模式写入
+  if (SEED_MODE !== 'demo') {
+    const counts = {
+      users: await prisma.user.count(),
+      categories: await prisma.category.count(),
+      books: await prisma.book.count(),
+      transactions: await prisma.transaction.count(),
+      inviteCodes: await prisma.inviteCode.count(),
+      adminLogs: await prisma.adminLog.count(),
+    }
+    console.log('seed 完成(干净库,仅 admin + 预置分类):', counts)
+    return
   }
 
   console.log('写入 yiyu 的自定义分类(装修/旅行)…')
@@ -366,7 +385,7 @@ async function main() {
     inviteCodes: await prisma.inviteCode.count(),
     adminLogs: await prisma.adminLog.count(),
   }
-  console.log('seed 完成:', counts)
+  console.log('seed 完成(demo 演示数据):', counts)
 }
 
 main()
