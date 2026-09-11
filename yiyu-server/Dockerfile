@@ -1,13 +1,17 @@
 # 后端镜像:两段式(多阶段构建)
 #   阶段一 build:Node 镜像里装依赖 + prisma generate + nest build 编译
 #   阶段二 运行 :只把产物拷进干净的 Node 镜像 —— 无源码、无 devDependencies,体积小
+# 注意:Dockerfile 指令同一行不能跟 # 注释,注释必须独占一行
 FROM node:22-alpine AS build
 WORKDIR /app
-RUN corepack enable                       # 启用 corepack 以获得 pnpm
-COPY package.json pnpm-lock.yaml ./       # 先只拷清单文件,利用 Docker 层缓存:依赖不变则跳过安装
+# 启用 corepack 以获得 pnpm
+RUN corepack enable
+# 先只拷清单文件,利用 Docker 层缓存:依赖不变则跳过安装
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
-COPY . .                                  # 再拷源码
-RUN pnpm prisma:generate && pnpm build    # 生成 Prisma Client + 编译 TS → dist/
+# 再拷源码,生成 Prisma Client + 编译 TS → dist/
+COPY . .
+RUN pnpm prisma:generate && pnpm build
 
 # ── 运行阶段 ──
 FROM node:22-alpine
@@ -17,7 +21,8 @@ RUN corepack enable
 COPY --from=build /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/prisma ./prisma            # 迁移文件要在启动时应用到数据库
+# 迁移文件要在启动时应用到数据库
+COPY --from=build /app/prisma ./prisma
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 EXPOSE 3000
