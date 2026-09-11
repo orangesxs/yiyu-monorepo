@@ -1,0 +1,109 @@
+.portal {
+  position: relative;
+  padding-top: 48px;
+  padding-bottom: 48px;
+  overflow: hidden;
+}
+
+/* 氛围光晕 */
+.portal-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: var(--glow-opacity);
+  pointer-events: none;
+}
+.g1 { width: 500px; height: 500px; background: var(--app-ledger); top: -180px; left: -100px; }
+.g2 { width: 420px; height: 420px; background: var(--app-admin); top: -140px; right: 8%; }
+
+/* 问候区 */
+.greet-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+}
+.greet { min-width: 0; }
+
+/* 问候 */
+.greet h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.wave { display: inline-block; animation: wave 2.4s ease-in-out infinite; transform-origin: 70% 70%; }
+@keyframes wave { 0%, 55%, 100% { transform: rotate(0); } 60% { transform: rotate(18deg); } 70% { transform: rotate(-8deg); } 80% { transform: rotate(14deg); } 90% { transform: rotate(-4deg); } }
+
+.greet .date {
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+  margin: 8px 0 18px;
+  letter-spacing: 0.02em;
+}
+
+.quote {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 13px;
+  color: var(--text-regular);
+}
+.quote-mark { color: var(--color-primary); font-size: 18px; font-family: Georgia, serif; line-height: 1; }
+.quote-mark.end { font-size: 14px; align-self: flex-end; }
+
+/* 应用卡(单卡栅格:仅记账本;max-width 保持与两卡时一致的视觉宽度) */
+.app-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--gap-module);
+  margin-top: 30px;
+  max-width: 480px;
+}
+
+.app-card {
+  padding: 22px;
+  cursor: pointer;
+}
+
+.app-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.app-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.app-card-name { font-size: 16px; font-weight: 600; }
+.app-card-sub { font-size: var(--fs-caption); color: var(--text-secondary); margin-top: 2px; }
+.enter {
+  margin-left: auto;
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  transition: color var(--dur-base) ease, transform var(--dur-base) ease;
+}
+.app-card:hover .enter { color: var(--color-primary); transform: translateX(3px); }
+
+.app-card-data {
+  display: flex;
+  gap: 28px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-color);
+}
+.entry { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.entry-label { font-size: var(--fs-caption); color: var(--text-secondary); }
+.entry-value { font-size: 19px; font-weight: 600; }
+
+@media (max-width: 768px) {
+  .app-cards { grid-template-columns: 1fr; max-width: none; }
+}

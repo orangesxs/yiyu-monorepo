@@ -1,0 +1,169 @@
+/* ============================================
+   一隅 · 基础样式 / 字体 / 动画
+   ============================================ */
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap");
+@import "./tokens.css";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  color: var(--text-primary);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#app {
+  height: 100%;
+}
+
+/* 数字排印：金额/统计/进度/日历 */
+.num {
+  font-family: var(--font-num);
+  font-feature-settings: "tnum";
+  letter-spacing: -0.01em;
+}
+
+/* 大数字统计 */
+.stat-num {
+  font-family: var(--font-num);
+  font-feature-settings: "tnum";
+  font-size: var(--fs-stat);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* 金额色 */
+.money-in { color: var(--income-ink); }
+.money-out { color: var(--expense-ink); }
+
+/* ---------- 通用卡片 ---------- */
+.yiyu-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-rest);
+  transition: transform var(--dur-base) ease, box-shadow var(--dur-base) ease,
+    border-color var(--dur-base) ease;
+}
+
+.yiyu-card--hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--card-border-on-hover);
+}
+
+html.dark .yiyu-card--hover:hover {
+  transform: none;
+  border-color: var(--card-border-on-hover);
+}
+
+/* ---------- 页面容器 ---------- */
+.page {
+  padding: var(--gap-page);
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: var(--fs-page-title);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.page-sub {
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- 动画 keyframes ---------- */
+
+/* 阶梯式上浮入场（广场卡片） */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.5s var(--ease-spring) both;
+}
+
+/* 列表新行滑入（记账保存后） */
+@keyframes slide-in-row {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    background: transparent;
+  }
+}
+
+.slide-in-row {
+  animation: slide-in-row 0.5s ease-out;
+}
+
+/* 淡入 */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in {
+  animation: fade-in 0.4s ease both;
+}
+
+/* ---------- Element Plus 微调 ---------- */
+.el-button {
+  font-family: var(--font-body);
+}
+
+.el-table {
+  --el-table-border-color: var(--border-color);
+  --el-table-header-bg-color: var(--bg-soft);
+  --el-table-row-hover-bg-color: var(--bg-hover);
+}
+
+/* 深色下弹窗/抽屉背景修正 */
+html.dark .el-dialog,
+html.dark .el-drawer,
+html.dark .el-card {
+  background: var(--bg-card);
+}

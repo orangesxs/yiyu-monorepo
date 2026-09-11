@@ -1,0 +1,126 @@
+// 「一隅」数据库 schema(Prisma + PostgreSQL)
+// 设计文档见 docs/数据库设计.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── 用户(唯一用户表) ───────────────────────────
+// 归一前端时代的 SystemUser + Profile 两份 mock:登录凭据 + 角色/状态 + 档案字段同表。
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  nickname     String
+  avatar       String    @default("🧑‍💻")
+  role         String    @default("user") // 'admin' | 'user'
+  status       String    @default("active") // 'active' | 'disabled'
+  // 档案字段(原 profile mock)
+  bio          String    @default("")
+  gender       String    @default("secret") // 'secret' | 'male' | 'female'
+  birthday     DateTime? // 生日,未填为 null
+  region       String    @default("")
+  registeredAt DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  books           Book[]
+  categories      Category[]      @relation("CategoryOwner")
+  transactions    Transaction[]
+  createdInvites InviteCode[]     @relation("InviteCreator")
+  usedInvite      InviteCode?     @relation("InviteUsedBy")
+  adminLogs       AdminLog[]
+
+  @@index([role, status])
+}
+
+// ─────────────────────────── 邀请码(内部应用,注册需码) ───────────────────────────
+model InviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique // 8 位大写无歧义字符
+  creator   User      @relation("InviteCreator", fields: [creatorId], references: [id])
+  creatorId String
+  usedBy    User?     @relation("InviteUsedBy", fields: [usedById], references: [id])
+  usedById  String?   @unique // 一码一用
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([creatorId])
+}
+
+// ─────────────────────────── 账本 ───────────────────────────
+// monthExpense 不落库,GET /books 实时聚合当月支出。
+model Book {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  name      String
+  icon      String   @default("📘")
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+// ─────────────────────────── 分类(预置 + 用户自定义) ───────────────────────────
+// ownerId 为空 = 全局预置分类;非空 = 该用户的自定义分类(custom)。
+// 根分类带子分类(parentId 非空 = 子分类,子分类无 icon 语义由前端控制,icon 存 '' 即可)。
+model Category {
+  id        String     @id @default(cuid())
+  owner     User?      @relation("CategoryOwner", fields: [ownerId], references: [id])
+  ownerId   String?
+  type      String // 'expense' | 'income'
+  name      String
+  icon      String     @default("🏷️")
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  parentId  String?
+  children  Category[] @relation("CategoryTree")
+  createdAt DateTime   @default(now())
+
+  transactions Transaction[]
+
+  @@index([ownerId, type])
+  @@index([parentId])
+}
+
+// ─────────────────────────── 流水 ───────────────────────────
+// categoryId 可空:分类被删除后靠 categoryName 冗余兜底展示(前端既有语义)。
+model Transaction {
+  id           String    @id @default(cuid())
+  user         User      @relation(fields: [userId], references: [id])
+  userId       String
+  book         Book      @relation(fields: [bookId], references: [id])
+  bookId       String
+  type         String // 'expense' | 'income'
+  amount       Decimal   @db.Decimal(12, 2)
+  category     Category? @relation(fields: [categoryId], references: [id])
+  categoryId   String?
+  categoryName String // 服务端根据分类派生的冗余名(子分类名或根分类名)
+  date         DateTime // 记账时间(原 mock 为 'YYYY-MM-DD HH:mm' 字符串,API 层转换)
+  note         String?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, bookId, date(sort: Desc)])
+  @@index([userId, date])
+}
+
+// ─────────────────────────── 系统日志(审计) ───────────────────────────
+model AdminLog {
+  id         String   @id @default(cuid())
+  time       DateTime @default(now())
+  module     String // 'auth' | 'ledger' | 'profile' | 'admin'
+  action     String // 'login' | 'create' | 'update' | 'delete' | 'security'
+  operator   User     @relation(fields: [operatorId], references: [id])
+  operatorId String
+  summary    String   @db.VarChar(40) // 中文一句话,≤40 字
+
+  @@index([time(sort: Desc)])
+  @@index([module, action])
+}

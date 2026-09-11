@@ -1,0 +1,1220 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "一隅 yiyu-server API",
+    "description": "「一隅」后端 API。统一响应包装 envelope:{success, code, message, data, timestamp};成功 code=0,失败 code=HTTP 状态码,message 为中文人话。除 auth/login、auth/register 外全部要求 Bearer JWT;admin 组另要求 role=admin。时间格式 YYYY-MM-DD HH:mm(Asia/Shanghai),日期 YYYY-MM-DD,金额 number(元,≤2 位小数)。限流:全局 60 次/分,登录/注册 5 次/分(429)。",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "http://localhost:3000/api", "description": "本地开发" }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "tags": [
+    { "name": "auth", "description": "认证(注册需邀请码;停用账号登录 403)" },
+    { "name": "profile", "description": "个人档案" },
+    { "name": "invite-codes", "description": "我的邀请码(profile 域,非 admin 未使用上限 5)" },
+    { "name": "ledger", "description": "记账本(账本/分类/流水/报表)" },
+    { "name": "portal", "description": "广场门户" },
+    { "name": "admin", "description": "管理后台(全部 requiresAdmin,非 admin 403)" }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "注册",
+        "description": "用户名 2-20 位 [a-zA-Z0-9_] 唯一(冲突 409),密码≥6,邀请码 8 位须未使用;成功即登录,自动创建默认账本并记审计日志。",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "nickname", "password", "inviteCode"],
+                "properties": {
+                  "username": { "type": "string", "pattern": "^[a-zA-Z0-9_]{2,20}$" },
+                  "nickname": { "type": "string" },
+                  "password": { "type": "string", "minLength": 6 },
+                  "inviteCode": { "type": "string", "minLength": 8, "maxLength": 8 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "注册成功,返回 token 与用户",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthTokenData" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "登录",
+        "description": "停用账号 403「账号已停用,请联系管理员」。限流 5 次/分。",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthTokenData" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "登出",
+        "description": "记登出日志;无状态 JWT,不做服务端注销。data 为 null。",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Empty" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["auth"],
+        "summary": "当前用户信息",
+        "description": "token 过期/用户停用/删除均 401。user.role 是前端全站唯一管理员判定依据。",
+        "responses": {
+          "200": {
+            "description": "当前登录用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeUser"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "tags": ["profile"],
+        "summary": "获取个人档案",
+        "responses": {
+          "200": {
+            "description": "档案",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EnvelopeProfile" }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["profile"],
+        "summary": "更新个人档案",
+        "description": "部分/全量更新可编辑字段,返回更新后档案。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nickname": { "type": "string" },
+                  "avatar": { "type": "string" },
+                  "bio": { "type": "string" },
+                  "gender": { "type": "string" },
+                  "birthday": { "type": "string", "description": "'' 或 YYYY-MM-DD" },
+                  "region": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新后档案",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EnvelopeProfile" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile/password": {
+      "put": {
+        "tags": ["profile"],
+        "summary": "修改密码",
+        "description": "旧密码错误 400「当前密码不正确」。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["oldPassword", "newPassword"],
+                "properties": {
+                  "oldPassword": { "type": "string" },
+                  "newPassword": { "type": "string", "minLength": 6 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Empty" }
+        }
+      }
+    },
+    "/profile/invite-codes": {
+      "get": {
+        "tags": ["invite-codes"],
+        "summary": "我的邀请码列表",
+        "description": "新在前。",
+        "responses": {
+          "200": {
+            "description": "邀请码列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/InviteCode" }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["invite-codes"],
+        "summary": "生成邀请码",
+        "description": "非 admin 未使用数达上限(默认 5)→ 400。",
+        "responses": {
+          "201": {
+            "description": "生成的邀请码",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/InviteCode" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/books": {
+      "get": {
+        "tags": ["ledger"],
+        "summary": "账本列表",
+        "description": "monthExpense 为当月支出实时聚合;默认账本在前。",
+        "responses": {
+          "200": {
+            "description": "账本列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Book" }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["ledger"],
+        "summary": "新建账本",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "icon"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "icon": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "新建的账本",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/Book" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/categories": {
+      "get": {
+        "tags": ["ledger"],
+        "summary": "分类树",
+        "description": "预置在前,custom=true 为我的自定义;带 type 返回单套树,省略 type 时一次返回两套 {expense:[], income:[]}。",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["expense", "income"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "根分类树",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "oneOf": [
+                            {
+                              "type": "array",
+                              "items": { "$ref": "#/components/schemas/Category" }
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "expense": {
+                                  "type": "array",
+                                  "items": { "$ref": "#/components/schemas/Category" }
+                                },
+                                "income": {
+                                  "type": "array",
+                                  "items": { "$ref": "#/components/schemas/Category" }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["ledger"],
+        "summary": "新增自定义分类",
+        "description": "同 type 重名(含预置)→ 400「该分类名已存在」。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "name", "icon"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["expense", "income"] },
+                  "name": { "type": "string" },
+                  "icon": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "新建的分类",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/Category" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/categories/{id}": {
+      "delete": {
+        "tags": ["ledger"],
+        "summary": "删除自定义分类",
+        "description": "仅 custom 可删(他人/预置 403);删除后其流水 categoryId 置 null,展示靠 categoryName 兜底。",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Empty" }
+        }
+      }
+    },
+    "/ledger/transactions": {
+      "get": {
+        "tags": ["ledger"],
+        "summary": "流水列表(服务端分页 + 筛选)",
+        "description": "bookId 必填(他人账本 403),to 含当日,时间倒序;type/categoryId/keyword 为服务端筛选(keyword 模糊匹配备注)。",
+        "parameters": [
+          { "name": "bookId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "from", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } },
+          { "name": "to", "in": "query", "required": false, "schema": { "type": "string", "format": "date" } },
+          { "name": "type", "in": "query", "required": false, "schema": { "type": "string", "enum": ["expense", "income"] } },
+          { "name": "categoryId", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "keyword", "in": "query", "required": false, "schema": { "type": "string", "maxLength": 60 } },
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "分页流水",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/PagedTransactions" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["ledger"],
+        "summary": "记一笔",
+        "description": "categoryName 由服务端派生;type 与分类不匹配 400;金额须 >0 且 ≤2 位小数。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type", "amount", "categoryId", "date", "bookId"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["expense", "income"] },
+                  "amount": { "type": "number", "exclusiveMinimum": 0 },
+                  "categoryId": { "type": "string" },
+                  "date": { "type": "string", "format": "date" },
+                  "note": { "type": "string", "nullable": true },
+                  "bookId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "新建的流水",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/Transaction" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger/transactions/{id}": {
+      "patch": {
+        "tags": ["ledger"],
+        "summary": "更新流水",
+        "description": "部分更新;非本人 403。",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "enum": ["expense", "income"] },
+                  "amount": { "type": "number", "exclusiveMinimum": 0 },
+                  "categoryId": { "type": "string" },
+                  "date": { "type": "string", "format": "date" },
+                  "note": { "type": "string", "nullable": true },
+                  "bookId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新后的流水",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/Transaction" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["ledger"],
+        "summary": "删除流水",
+        "description": "非本人 403。",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Empty" }
+        }
+      }
+    },
+    "/ledger/reports": {
+      "get": {
+        "tags": ["ledger"],
+        "summary": "报表聚合",
+        "description": "三参均必填;from>to 或区间>10 年 → 400;他人账本 403。子分类归并到根分类名,金额倒序;daily 仅区间 ≤92 天时返回。",
+        "parameters": [
+          { "name": "bookId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "from", "in": "query", "required": true, "schema": { "type": "string", "format": "date" } },
+          { "name": "to", "in": "query", "required": true, "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "报表聚合结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/Reports" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/portal/summary": {
+      "get": {
+        "tags": ["portal"],
+        "summary": "广场应用卡摘要",
+        "description": "口径 = 默认账本当月收支(非默认账本/上月不计入),无账本时全 0。门户唯一接口。",
+        "responses": {
+          "200": {
+            "description": "应用卡摘要",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "apps": {
+                              "type": "object",
+                              "properties": {
+                                "ledger": {
+                                  "type": "object",
+                                  "properties": {
+                                    "bookName": { "type": "string" },
+                                    "bookIcon": { "type": "string" },
+                                    "monthExpense": { "type": "number" },
+                                    "monthIncome": { "type": "number" },
+                                    "monthBalance": { "type": "number" }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "用户列表",
+        "description": "keyword 模糊匹配用户名/昵称(不分大小写)。",
+        "parameters": [
+          { "name": "keyword", "in": "query", "required": false, "schema": { "type": "string" } },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["admin", "user"] }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["active", "disabled"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "用户列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/AdminUser" }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["admin"],
+        "summary": "直接建号",
+        "description": "不消耗邀请码,记 security 日志;用户名冲突 409。",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "name", "avatar", "role", "password"],
+                "properties": {
+                  "username": { "type": "string", "pattern": "^[a-zA-Z0-9_]{2,20}$" },
+                  "name": { "type": "string" },
+                  "avatar": { "type": "string" },
+                  "role": { "type": "string", "enum": ["admin", "user"] },
+                  "password": { "type": "string", "minLength": 6 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "新建的用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/AdminUser" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}": {
+      "patch": {
+        "tags": ["admin"],
+        "summary": "改角色 / 停用启用",
+        "description": "操作自己 400「不能修改自己的角色或状态」;停用即时生效(该用户现有 token 因 strategy 查库而 401)。",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": { "type": "string", "enum": ["admin", "user"] },
+                  "status": { "type": "string", "enum": ["active", "disabled"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "更新后的用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/AdminUser" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/logs": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "系统日志(服务端分页)",
+        "description": "时间倒序,pageSize ≤100。",
+        "parameters": [
+          { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "pageSize", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 } },
+          { "name": "module", "in": "query", "required": false, "schema": { "type": "string", "enum": ["auth", "ledger", "profile", "admin"] } },
+          { "name": "action", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "operatorId", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "分页日志",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/PagedLogs" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/dashboard": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "数据概览",
+        "description": "只统计系统资源(用户/管理员/账本/日志计数 + 近 7 日趋势 + 最近 8 条),不含流水/金额。",
+        "responses": {
+          "200": {
+            "description": "概览统计",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/Dashboard" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/invite-codes": {
+      "get": {
+        "tags": ["admin"],
+        "summary": "全部邀请码",
+        "description": "含 creator/usedBy 信息,新在前。",
+        "responses": {
+          "200": {
+            "description": "邀请码列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/AdminInviteCode" }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["admin"],
+        "summary": "生成邀请码",
+        "description": "admin 无额度限制。",
+        "responses": {
+          "201": {
+            "description": "生成的邀请码",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Envelope" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/AdminInviteCode" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "Empty": {
+        "description": "成功(data 为 null)",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Envelope" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Envelope": {
+        "type": "object",
+        "description": "统一响应包装;成功 code=0/message=''(空串),失败 code=HTTP 状态码/message 中文人话。",
+        "properties": {
+          "success": { "type": "boolean" },
+          "code": { "type": "integer" },
+          "message": { "type": "string" },
+          "data": { "nullable": true },
+          "timestamp": { "type": "integer", "description": "毫秒时间戳" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "username": { "type": "string" },
+          "nickname": { "type": "string" },
+          "avatar": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "user"] }
+        }
+      },
+      "EnvelopeUser": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Envelope" },
+          {
+            "type": "object",
+            "properties": {
+              "data": { "$ref": "#/components/schemas/User" }
+            }
+          }
+        ]
+      },
+      "AuthTokenData": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Envelope" },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "token": { "type": "string" },
+                  "user": { "$ref": "#/components/schemas/User" }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "username": { "type": "string" },
+          "nickname": { "type": "string" },
+          "avatar": { "type": "string" },
+          "bio": { "type": "string" },
+          "gender": { "type": "string" },
+          "birthday": { "type": "string", "description": "'' 或 YYYY-MM-DD" },
+          "region": { "type": "string" },
+          "joinedAt": { "type": "string", "format": "date" },
+          "updatedAt": { "type": "string", "description": "YYYY-MM-DD HH:mm" }
+        }
+      },
+      "EnvelopeProfile": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Envelope" },
+          {
+            "type": "object",
+            "properties": {
+              "data": { "$ref": "#/components/schemas/Profile" }
+            }
+          }
+        ]
+      },
+      "InviteCode": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "code": { "type": "string" },
+          "createdAt": { "type": "string", "description": "YYYY-MM-DD HH:mm" },
+          "usedAt": { "type": "string", "nullable": true, "description": "YYYY-MM-DD HH:mm" },
+          "usedBy": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "nickname": { "type": "string" },
+              "avatar": { "type": "string" }
+            }
+          }
+        }
+      },
+      "Book": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "icon": { "type": "string" },
+          "monthExpense": { "type": "number", "description": "当月支出实时聚合" },
+          "isDefault": { "type": "boolean" }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "icon": { "type": "string" },
+          "custom": { "type": "boolean", "nullable": true },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string", "enum": ["expense", "income"] },
+          "amount": { "type": "number" },
+          "categoryId": { "type": "string", "description": "已删分类为 ''" },
+          "categoryName": { "type": "string", "description": "服务端派生" },
+          "bookId": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "note": { "type": "string", "nullable": true }
+        }
+      },
+      "PagedTransactions": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "page": { "type": "integer" },
+          "pageSize": { "type": "integer" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Transaction" }
+          }
+        }
+      },
+      "Reports": {
+        "type": "object",
+        "properties": {
+          "stats": {
+            "type": "object",
+            "properties": {
+              "income": { "type": "number" },
+              "expense": { "type": "number" },
+              "balance": { "type": "number" },
+              "count": { "type": "integer" }
+            }
+          },
+          "daily": {
+            "type": "array",
+            "description": "仅区间 ≤92 天时返回",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": { "type": "string", "format": "date" },
+                "income": { "type": "number" },
+                "expense": { "type": "number" }
+              }
+            }
+          },
+          "monthly": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "month": { "type": "string", "description": "YYYY-MM" },
+                "income": { "type": "number" },
+                "expense": { "type": "number" }
+              }
+            }
+          },
+          "categories": {
+            "type": "object",
+            "properties": {
+              "expense": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/CategorySlice" }
+              },
+              "income": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/CategorySlice" }
+              }
+            }
+          }
+        }
+      },
+      "CategorySlice": {
+        "type": "object",
+        "description": "子分类归并到根分类名,金额倒序",
+        "properties": {
+          "name": { "type": "string" },
+          "value": { "type": "number" }
+        }
+      },
+      "AdminUser": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "username": { "type": "string" },
+          "name": { "type": "string" },
+          "avatar": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "user"] },
+          "status": { "type": "string", "enum": ["active", "disabled"] },
+          "registeredAt": { "type": "string", "description": "YYYY-MM-DD HH:mm" },
+          "lastActiveAt": { "type": "string", "nullable": true, "description": "YYYY-MM-DD HH:mm" }
+        }
+      },
+      "AdminLog": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "time": { "type": "string", "description": "YYYY-MM-DD HH:mm" },
+          "moduleId": { "type": "string", "enum": ["auth", "ledger", "profile", "admin"] },
+          "action": { "type": "string" },
+          "operatorId": { "type": "string" },
+          "summary": { "type": "string" },
+          "operator": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "nickname": { "type": "string" },
+              "avatar": { "type": "string" }
+            }
+          }
+        }
+      },
+      "PagedLogs": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "page": { "type": "integer" },
+          "pageSize": { "type": "integer" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AdminLog" }
+          }
+        }
+      },
+      "Dashboard": {
+        "type": "object",
+        "properties": {
+          "userCount": { "type": "integer" },
+          "adminCount": { "type": "integer" },
+          "activeCount": { "type": "integer" },
+          "disabledCount": { "type": "integer" },
+          "bookCount": { "type": "integer" },
+          "logCount": { "type": "integer" },
+          "logTodayCount": { "type": "integer" },
+          "logSecurityCount": { "type": "integer" },
+          "logCountByDay": {
+            "type": "array",
+            "description": "近 7 日",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": { "type": "string", "format": "date" },
+                "label": { "type": "string" },
+                "count": { "type": "integer" }
+              }
+            }
+          },
+          "latestLogs": {
+            "type": "array",
+            "description": "最近 8 条",
+            "items": { "$ref": "#/components/schemas/AdminLog" }
+          }
+        }
+      },
+      "AdminInviteCode": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "code": { "type": "string" },
+          "createdAt": { "type": "string", "description": "YYYY-MM-DD HH:mm" },
+          "usedAt": { "type": "string", "nullable": true },
+          "creator": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "nickname": { "type": "string" },
+              "avatar": { "type": "string" }
+            }
+          },
+          "usedBy": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "nickname": { "type": "string" },
+              "avatar": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

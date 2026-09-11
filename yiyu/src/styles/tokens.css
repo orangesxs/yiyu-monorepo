@@ -1,0 +1,104 @@
+/* ============================================
+   一隅 · 设计 Token（双主题）
+   精致极简：克制 + 精度取胜
+   ============================================ */
+
+:root {
+  /* 排版 */
+  --font-body: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-num: "Outfit", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  /* 字阶（严格三级） */
+  --fs-page-title: 20px;
+  --fs-card-title: 15px;
+  --fs-body: 14px;
+  --fs-caption: 12px;
+  --fs-stat: 32px;
+
+  /* 间距体系 */
+  --gap-page: 24px;
+  --gap-card: 20px;
+  --gap-module: 16px;
+  --radius-card: 10px;
+  --radius-input: 8px;
+
+  /* 语义色（浅深通用基色） */
+  --color-primary: #409eff;
+  --color-income: #18a058;
+  --color-expense: #e5484d;
+  --color-warning: #f59b0e;
+
+  /* 应用身份色(--app-admin 管理后台:石板灰,系统/控制台语义,与生活应用的彩色区分) */
+  --app-ledger: #409eff;
+  --app-admin: #64748b;
+
+  /* 动效 */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-base: 200ms;
+  --dur-sidebar: 240ms;
+
+  /* 阴影两级（浅色模式用） */
+  --shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- 浅色主题 ---------- */
+:root,
+html.light {
+  --bg-page: #f7f8fa;
+  --bg-card: #ffffff;
+  --bg-hover: #f5f7fa;
+  --bg-soft: #f0f2f5;
+  --border-color: #ebedf0;
+  --border-strong: #dcdfe6;
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --primary-ink: #337ecc;          /* 蓝色在白底上的文字可读版 */
+  --income-ink: #128050;
+  --expense-ink: #d63841;
+  --card-border-on-hover: rgba(64, 158, 255, 0.35);
+  --glow-opacity: 0.05;
+  --noise-opacity: 0.02;
+  --sticky-bg: rgba(255, 255, 255, 0.92);
+}
+
+/* ---------- 深色主题 ---------- */
+html.dark {
+  --bg-page: #131417;
+  --bg-card: #1b1d22;
+  --bg-hover: #22252b;
+  --bg-soft: #26292f;
+  --border-color: #2a2d34;
+  --border-strong: #363a42;
+  --text-primary: #e5e7eb;
+  --text-regular: #9ca3af;
+  --text-secondary: #6b7280;
+  --color-primary: #5b9bff;
+  --color-income: #3ecf8e;
+  --color-expense: #ff6369;
+  --color-warning: #ffb224;
+  --primary-ink: #7db4ff;
+  --income-ink: #4dd598;
+  --expense-ink: #ff7a80;
+  --shadow-rest: none;
+  --shadow-hover: none;
+  --card-border-on-hover: rgba(91, 155, 255, 0.45);
+  --glow-opacity: 0.07;
+  --noise-opacity: 0.03;
+  --sticky-bg: rgba(27, 29, 34, 0.92);
+}
+
+/* Element Plus 深色模式变量微调（在 html.dark 时生效） */
+html.dark {
+  --el-bg-color: #1b1d22;
+  --el-bg-color-overlay: #22252b;
+  --el-border-color: #2a2d34;
+  --el-border-color-light: #2a2d34;
+  --el-border-color-lighter: #23262c;
+  --el-fill-color-light: #22252b;
+  --el-fill-color-blank: #1b1d22;
+  --el-text-color-primary: #e5e7eb;
+  --el-text-color-regular: #9ca3af;
+  --el-color-primary: #5b9bff;
+}

@@ -1,0 +1,77 @@
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--gap-module);
+}
+
+.book-card {
+  position: relative;
+  padding: var(--gap-card);
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+}
+.book-card.current {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 3%, var(--bg-card));
+}
+.cur-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 11px;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.book-top { display: flex; align-items: center; gap: 14px; }
+.book-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--bg-soft);
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+}
+.book-name-wrap { display: flex; flex-direction: column; gap: 3px; }
+.book-name { font-size: 16px; font-weight: 600; }
+.book-stat { font-size: var(--fs-caption); color: var(--text-secondary); }
+
+.book-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color);
+}
+.book-default { font-size: var(--fs-caption); color: var(--text-secondary); }
+.book-switch {
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  transition: color var(--dur-base) ease, transform var(--dur-base) ease;
+}
+.book-card:hover .book-switch { color: var(--color-primary); transform: translateX(3px); }
+
+.icon-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.icon-pick {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all var(--dur-base) ease;
+}
+.icon-pick:hover { border-color: var(--card-border-on-hover); }
+.icon-pick.active { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 8%, transparent); }

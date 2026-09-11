@@ -1,0 +1,256 @@
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.head-switch { display: flex; gap: 10px; flex-wrap: wrap; }
+.head-sep { margin: 0 4px; color: var(--border-strong); }
+
+/* 区间前后导航 */
+.range-nav {
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-regular);
+  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  vertical-align: middle;
+  transition: all var(--dur-base) ease;
+  padding: 0;
+}
+.range-nav:hover:not(:disabled) { color: var(--color-primary); border-color: var(--card-border-on-hover); }
+.range-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.range-text { font-weight: 500; color: var(--text-regular); margin: 0 2px; }
+.range-offset { font-size: 11px; color: var(--color-warning); }
+
+/* ---- 概览卡 ---- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1.2fr;
+  gap: var(--gap-module);
+  margin-bottom: var(--gap-module);
+}
+.stat-card {
+  padding: var(--gap-card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card--main::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--color-expense);
+}
+.stat-card--main.k-income::before { background: var(--color-income); }
+.stat-card--main.k-total::before { background: var(--color-primary); }
+.stat-card--main .main-num { font-size: 30px; }
+.sum-label { font-size: var(--fs-caption); color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.sum-offset {
+  font-size: 10.5px;
+  color: var(--color-warning);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 40%, transparent);
+  border-radius: 999px;
+  padding: 0 7px;
+}
+.sum-sub { font-size: 11.5px; color: var(--text-secondary); }
+.sum-sub b.up { color: var(--expense-ink); }
+.sum-sub b.down { color: var(--income-ink); }
+.diff-abs { opacity: 0.75; }
+.sum-faint { font-size: 11px; color: var(--text-secondary); opacity: 0.8; }
+.stat-card.dim { opacity: 0.55; }
+.stat-card.dim:hover { opacity: 1; }
+
+/* 收支卡上的本期/上期对比条 */
+.mini-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+.mini-bar i { display: block; height: 4px; border-radius: 2px; min-width: 3px; }
+.mini-bar .out { background: color-mix(in srgb, var(--color-expense) 70%, transparent); }
+.mini-bar .inn { background: color-mix(in srgb, var(--color-income) 70%, transparent); }
+.mini-bar .prev { opacity: 0.3; }
+
+.stat-card--total {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--app-ledger) 8%, var(--bg-card)), var(--bg-card));
+  border-color: color-mix(in srgb, var(--app-ledger) 30%, var(--border-color));
+}
+.tt-num { font-size: 15px; font-weight: 400; display: flex; gap: 4px; flex-wrap: wrap; }
+.tt-part { color: var(--text-secondary); display: inline-flex; align-items: baseline; gap: 4px; margin-right: 8px; }
+.tt-part b { font-size: 17px; font-weight: 600; }
+
+/* ---- 图表区 ---- */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--gap-module);
+}
+.chart-card { padding: var(--gap-card); }
+.pie-card { }
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.chart-title { font-size: var(--fs-card-title); font-weight: 600; }
+.chart-sub { font-size: var(--fs-caption); color: var(--text-secondary); }
+.chart { height: 260px; }
+.chart--pie { height: 220px; }
+.chart-empty {
+  height: 220px;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* ---- 收支日历 ---- */
+.cal-card { display: flex; flex-direction: column; }
+.cal { display: flex; flex-direction: column; flex: 1; }
+.cal-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.cal-week span { text-align: center; font-size: 11px; color: var(--text-secondary); }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+/* 周=7 格一行；年=12 月 4 列（大格） */
+.cal-grid--week { grid-template-columns: repeat(7, 1fr); }
+.cal-grid--week .cal-cell { min-height: 96px; max-height: 130px; }
+.cal-grid--year { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cal-grid--year .cal-cell { min-height: 74px; }
+.cal-cell {
+  min-height: 46px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  transition: border-color var(--dur-base) ease, transform var(--dur-base) ease;
+}
+.cal-cell:hover, .cal-cell.hover { border-color: var(--card-border-on-hover); transform: translateY(-1px); }
+.cal-cell.today { border-color: var(--color-primary); }
+.cal-cell.today .cal-dom { color: var(--primary-ink); font-weight: 700; }
+.cal-cell:empty, .cal-cell.lv-none { background: transparent; border-style: dashed; opacity: 0.55; }
+.cal-cell.lv-future { background: transparent; border-style: dashed; opacity: 0.4; }
+.cal-future-dom { color: var(--text-secondary); font-weight: 400; }
+.cal-cell.lv-in { background: color-mix(in srgb, var(--color-income) 8%, var(--bg-card)); }
+.cal-cell.lv-e1 { background: color-mix(in srgb, var(--color-expense) 10%, var(--bg-card)); }
+.cal-cell.lv-e2 { background: color-mix(in srgb, var(--color-expense) 20%, var(--bg-card)); }
+.cal-cell.lv-e3 { background: color-mix(in srgb, var(--color-expense) 34%, var(--bg-card)); }
+.cal-cell.lv-e4 { background: color-mix(in srgb, var(--color-expense) 52%, var(--bg-card)); }
+.cal-cell.lv-e3 .cal-dom, .cal-cell.lv-e4 .cal-dom { color: var(--text-primary); }
+.cal-dom {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+/* 今日：数字变主题蓝 */
+.cal-cell.today .cal-dom { color: var(--primary-ink); }
+.cal-cell.lv-future .cal-dom { color: var(--text-secondary); font-weight: 500; opacity: 0.7; }
+.cal-out { font-size: 10.5px; color: var(--expense-ink); white-space: nowrap; }
+.cal-in { font-size: 10.5px; color: var(--income-ink); white-space: nowrap; }
+/* 周/年大格：数字加大 */
+.cal-grid--week .cal-dom, .cal-grid--year .cal-dom { font-size: 13px; }
+
+.cal-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 11.5px;
+  min-height: 18px;
+}
+.cal-hover b { font-weight: 600; margin-right: 6px; }
+.cal-muted { color: var(--text-secondary); opacity: 0.7; }
+.cal-legend { display: inline-flex; align-items: center; gap: 3px; color: var(--text-secondary); font-size: 10.5px; white-space: nowrap; }
+.lg-cell { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.lg-cell.lv-in { background: color-mix(in srgb, var(--color-income) 12%, var(--bg-card)); border: 1px solid var(--border-color); }
+.lg-cell.lv-e1 { background: color-mix(in srgb, var(--color-expense) 10%, var(--bg-card)); border: 1px solid var(--border-color); }
+.lg-cell.lv-e2 { background: color-mix(in srgb, var(--color-expense) 20%, var(--bg-card)); }
+.lg-cell.lv-e3 { background: color-mix(in srgb, var(--color-expense) 34%, var(--bg-card)); }
+.lg-cell.lv-e4 { background: color-mix(in srgb, var(--color-expense) 52%, var(--bg-card)); }
+.cal-legend .lg-cell + .lg-cell { margin-left: 2px; }
+.cal-legend .lg-cell.lv-e4 + * { margin-left: 6px; }
+
+/* ---- 排行列表 ---- */
+.rank-list { display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+.rank-row {
+  display: grid;
+  grid-template-columns: 22px minmax(64px, auto) 1fr 92px 40px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border-color);
+  font-size: 13px;
+}
+.rank-row:last-child { border-bottom: none; }
+.rank-idx {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--bg-soft);
+  color: var(--text-secondary);
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+}
+.rank-idx.top { background: color-mix(in srgb, var(--color-warning) 16%, transparent); color: var(--color-warning); font-weight: 700; }
+.rank-name { display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-kind {
+  font-style: normal;
+  font-size: 10px;
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.rank-kind.expense { color: var(--expense-ink); background: color-mix(in srgb, var(--color-expense) 10%, transparent); }
+.rank-kind.income { color: var(--income-ink); background: color-mix(in srgb, var(--color-income) 10%, transparent); }
+.rank-bar { height: 8px; border-radius: 4px; background: var(--bg-soft); overflow: hidden; }
+.rank-bar i { display: block; height: 100%; border-radius: 4px; transition: width var(--dur-sidebar) ease; }
+.rank-bar i.expense { background: linear-gradient(90deg, color-mix(in srgb, var(--color-expense) 65%, transparent), var(--color-expense)); }
+.rank-bar i.income { background: linear-gradient(90deg, color-mix(in srgb, var(--color-income) 65%, transparent), var(--color-income)); }
+.rank-val { text-align: right; color: var(--text-regular); font-weight: 500; }
+.rank-pct { text-align: right; color: var(--text-secondary); font-size: 11px; }
+
+/* ---- 响应式 ---- */
+@media (max-width: 1100px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .stat-card--main, .stat-card--total { grid-column: span 2; }
+  .tt-num { flex-direction: column; gap: 0; }
+  .rank-row { grid-template-columns: 22px auto 1fr 70px; }
+  .rank-pct { display: none; }
+  .cal-cell { min-height: 38px; padding: 3px 4px; }
+  .cal-out, .cal-in { display: none; }
+  .cal-grid--week .cal-cell { min-height: 64px; }
+  .cal-grid--year { grid-template-columns: repeat(3, 1fr); }
+  .cal-grid--year .cal-cell { min-height: 60px; }
+}
