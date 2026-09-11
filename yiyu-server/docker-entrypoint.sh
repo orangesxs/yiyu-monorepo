@@ -20,4 +20,13 @@ else
 fi
 
 # 3. 启动 NestJS 服务(exec 让 node 成为 1 号进程,能正确接收停止信号)
-exec node dist/main.js
+#    nest build 因 tsconfig paths 会产出 dist/src/main.js,无 paths 项目则是 dist/main.js,自动探测
+if [ -f dist/main.js ]; then
+  MAIN=dist/main.js
+elif [ -f dist/src/main.js ]; then
+  MAIN=dist/src/main.js
+else
+  echo "未找到编译产物 dist/main.js 或 dist/src/main.js" >&2
+  exit 1
+fi
+exec node "$MAIN"
