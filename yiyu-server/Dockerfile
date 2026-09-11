@@ -23,6 +23,9 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 # 迁移文件要在启动时应用到数据库
 COPY --from=build /app/prisma ./prisma
+# tsconfig.json:运行期 entrypoint 用 ts-node 执行 prisma/seed.ts 时必须存在,
+# 缺失时 ts-node 回退默认 module=NodeNext,会报 TS5109 编译错误导致容器重启循环
+COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh
 EXPOSE 3000
