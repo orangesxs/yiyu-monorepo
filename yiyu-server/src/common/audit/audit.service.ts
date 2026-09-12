@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 
-export type LogModule = 'auth' | 'ledger' | 'profile' | 'admin'
+export type LogModule = 'auth' | 'ledger' | 'profile' | 'admin' | 'agent'
 export type LogAction = 'login' | 'create' | 'update' | 'delete' | 'security'
 
 /**

@@ -25,7 +25,7 @@ export const roleLabels: Record<UserRole, string> = { admin: '管理员', user: 
 export const statusLabels: Record<UserStatus, string> = { active: '正常', disabled: '停用' }
 
 /** 日志归属模块 */
-export type LogModule = 'auth' | 'ledger' | 'profile' | 'admin'
+export type LogModule = 'auth' | 'ledger' | 'profile' | 'admin' | 'agent'
 
 /** 日志操作类型 */
 export type LogAction = 'login' | 'create' | 'update' | 'delete' | 'security'
@@ -48,6 +48,7 @@ export const moduleLabels: Record<LogModule, string> = {
   ledger: '记账本',
   profile: '个人中心',
   admin: '管理后台',
+  agent: 'AI 助手',
 }
 
 export const actionLabels: Record<LogAction, string> = {

@@ -10,6 +10,7 @@ import { InviteCodesModule } from './modules/invite-codes/invite-codes.module'
 import { LedgerModule } from './modules/ledger/ledger.module'
 import { AdminModule } from './modules/admin/admin.module'
 import { PortalModule } from './modules/portal/portal.module'
+import { AgentModule } from './modules/agent/agent.module'
 import { HealthController } from './health/health.controller'
 
 /**
@@ -30,6 +31,7 @@ import { HealthController } from './health/health.controller'
     LedgerModule,
     AdminModule,
     PortalModule,
+    AgentModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

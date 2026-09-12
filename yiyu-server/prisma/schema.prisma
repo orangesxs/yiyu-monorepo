@@ -35,6 +35,8 @@ model User {
   createdInvites InviteCode[]     @relation("InviteCreator")
   usedInvite      InviteCode?     @relation("InviteUsedBy")
   adminLogs       AdminLog[]
+  agentConversations AgentConversation[]
+  agentUsages        AgentUsageLog[]
 
   @@index([role, status])
 }
@@ -115,7 +117,7 @@ model Transaction {
 model AdminLog {
   id         String   @id @default(cuid())
   time       DateTime @default(now())
-  module     String // 'auth' | 'ledger' | 'profile' | 'admin'
+  module     String // 'auth' | 'ledger' | 'profile' | 'admin' | 'agent'
   action     String // 'login' | 'create' | 'update' | 'delete' | 'security'
   operator   User     @relation(fields: [operatorId], references: [id])
   operatorId String
@@ -123,4 +125,86 @@ model AdminLog {
 
   @@index([time(sort: Desc)])
   @@index([module, action])
+}
+
+// ─────────────────────────── 系统配置(运行时 KV) ───────────────────────────
+// LLM 连接、AI 人设、Agent 行为参数以 JSON value 存储,key 按域点分。
+// 已约定 key:'ai.llm' | 'ai.persona' | 'agent.settings'(结构由 AgentConfigService 约束)。
+model SystemConfig {
+  key       String   @id
+  value     Json
+  updatedBy String   @default("") // 最后修改人 username(admin)
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────── Agent 会话 ───────────────────────────
+model AgentConversation {
+  id            String    @id @default(cuid())
+  user          User      @relation(fields: [userId], references: [id])
+  userId        String
+  title         String    @default("新对话") // 首条用户消息 slice(0,16) 自动命名
+  summary       String? // 旧对话滚动摘要(结构化键值文本)
+  summarizedSeq Int       @default(0) // 已摘要到哪条 seq
+  lastMessageAt DateTime  @default(now()) // 会话列表排序键
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages AgentMessage[]
+  usages   AgentUsageLog[]
+
+  @@index([userId, lastMessageAt(sort: Desc)])
+}
+
+// ─────────────────────────── Agent 消息 ───────────────────────────
+// role: 'user' | 'assistant' | 'tool'
+// kind: 'text' | 'tool_calls' | 'tool_result' | 'confirm_card'
+// content 为 JSON,形状按 kind 判别(见 AgentExecutorService);明文存储。
+// seq 会话内单调递增(1..n),排序与分页游标。
+model AgentMessage {
+  id             String            @id @default(cuid())
+  conversation   AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  seq            Int
+  role           String
+  kind           String
+  content        Json
+  meta           Json? // user:页面上下文;assistant:模型/耗时/是否中断
+  createdAt      DateTime          @default(now())
+
+  @@unique([conversationId, seq])
+  @@index([conversationId, seq(sort: Desc)])
+}
+
+// ─────────────────────────── Agent 技能配置(启停覆盖) ───────────────────────────
+// 技能本体在代码注册(SkillRegistry);本表只存覆盖值,无记录 = 默认启用。
+// skillId 即 registry 的 id(如 'ledger.create_transaction');代码删技能后残留行无害。
+model AgentSkillConfig {
+  skillId   String   @id
+  group     String // 'ledger' | 'profile' | 'common'(冗余存一份,便于运维排查)
+  enabled   Boolean  @default(true)
+  updatedBy String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────── Agent LLM 用量(每次调用一行) ───────────────────────────
+// 粒度:每次 LLM HTTP 调用;一轮对话可能多行(多次工具往返 + 可能的摘要调用)。
+model AgentUsageLog {
+  id                String             @id @default(cuid())
+  user              User               @relation(fields: [userId], references: [id])
+  userId            String
+  conversation      AgentConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  conversationId    String? // 测试连通/摘要异常时可能无会话
+  kind              String // 'chat' | 'summarize' | 'test'
+  model             String
+  promptTokens      Int                @default(0)
+  completionTokens  Int                @default(0)
+  estimated         Boolean            @default(false) // 流式下网关未返回 usage 时按字符估算
+  latencyMs         Int                @default(0)
+  ok                Boolean            @default(true)
+  errorCode         String? // 失败时的 HTTP/业务错误码
+  createdAt         DateTime           @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([conversationId])
 }

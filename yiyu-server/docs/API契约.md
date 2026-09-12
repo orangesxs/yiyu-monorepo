@@ -105,6 +105,69 @@ Transaction 形状:`{id, type, amount, categoryId('' 若已删), categoryName, b
 | GET | `/admin/invite-codes` | 全部码(含 creator/usedBy 信息),新在前 |
 | POST | `/admin/invite-codes` | 生成码,admin 无额度限制 |
 
+## agent AI 助手(`/agent/v1`,登录用户;`/agent/v1/admin/*` requiresAdmin)
+
+平台级模块:聊天抽屉/未来 App 共用的"自然语言 API"。工具调用全在后端(直接函数调 LedgerService/UsersService,权限天然继承);LLM 走 OpenAI 兼容协议,配置存 SystemConfig 表(key=`ai.llm`/`ai.persona`/`agent.settings`),key 脱敏回显。
+
+### 会话管理(envelope)
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/agent/v1/status` | → `{llmConfigured, agentEnabled}`;未配置时前端降级提示 |
+| GET | `/agent/v1/conversations` | 会话列表(lastMessageAt 倒序) |
+| POST | `/agent/v1/conversations` | 新建,含轻主动开场白(复用 portal summary,不调 LLM) |
+| DELETE | `/agent/v1/conversations/:id` | 级联删消息;用量保留(conversationId 置 null) |
+| GET | `/agent/v1/conversations/:id/messages?page&pageSize` | seq 正序分页(role/kind/content JSON 契约见下) |
+
+### 对话(SSE:POST + Bearer,响应 text/event-stream)
+
+| 方法 | 路径 | 入参 | 说明 |
+|---|---|---|---|
+| POST | `/agent/v1/conversations/:id/chat` | `{content, pageContext?{app,title,hint}}` | 主循环:LLM 多轮工具调用直至最终回答 |
+| POST | `/agent/v1/confirms/:confirmId/confirm` | `{}` | 确认中/高风险卡 → 执行 → LLM 总结(同 SSE 协议) |
+| POST | `/agent/v1/confirms/:confirmId/cancel` | `{}` | 取消卡(普通 envelope,不调 LLM) |
+| POST | `/agent/v1/conversations/:id/regenerate` | `{}` | 裁掉最后一条 user 消息之后的回复重跑 |
+
+SSE 事件(流前错误=HTTP envelope;流中=error 事件;15s ping 心跳):
+
+```
+message_start    {messageId, role:'assistant'}
+message_delta    {messageId, delta}                  # 文本增量(打字机)
+message_end      {messageId, text, meta?{model, latencyMs, aborted}}
+tool_start       {callId, name, label, risk, args}
+tool_result      {callId, name, ok, summary, card?{cardType,title,data}, error?, latencyMs}
+confirm_required {card:{confirmId, skillId, label, risk, args, preview:{lines}, warning?, status:'pending', expiresAt}}  # +10min 过期
+usage            {model, promptTokens, completionTokens, estimated}
+done             {conversationId, finish:'done'|'confirm_required'|'aborted'|'error'|'max_rounds'}
+error            {code, message}                     # 503 未配置 / 502 LLM 失败
+```
+
+风险分级:低=直接执行(查询);中=确认卡(记一笔);高=警告卡+二次确认(删流水)。同会话同时仅一张 pending 卡(新卡/新消息自动取代旧卡);过期惰性判定。
+
+### 技能管理(admin)
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/agent/v1/admin/skills` | 全量技能 join 启停:`[{skillId, group, name, label, description, risk, parameters, enabled}]`;技能本体在代码注册(SkillRegistry),首期 8 个:ledger×5/profile×2/common×1 |
+| PUT | `/agent/v1/admin/skills/:name` | `{enabled}` 启停(30s 缓存) |
+
+### 配置与用量(admin)
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/agent/v1/admin/config` | `{llm:{baseUrl, apiKeyMasked(尾4位), model, streaming}, persona:{systemPrompt}, settings:{agentEnabled, contextTurns, maxToolRounds}}` |
+| PUT | `/agent/v1/admin/config` | 部分更新(apiKey 空串=保留);写即失效缓存 |
+| POST | `/agent/v1/admin/config/test` | 连通测试 → `{ok, latencyMs, model, message}`(落 kind='test' 用量) |
+| GET | `/agent/v1/admin/usage/summary?from&to` | → `{totalCalls, totalPromptTokens, totalCompletionTokens, byDay, byUser}`(排除 test;后台仅统计**不见对话内容**) |
+
+### 管理端(agent/v1/admin)
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET/PUT | `/agent/v1/admin/config`(+`/test`) | 见上 |
+| GET/PUT | `/agent/v1/admin/skills(/:name)` | 见上 |
+| GET | `/agent/v1/admin/usage/summary` | 见上 |
+
 ## 审计埋点(admin_logs)
 
 | module | 触发点 |
@@ -113,6 +176,7 @@ Transaction 形状:`{id, type, amount, categoryId('' 若已删), categoryName, b
 | ledger | 记一笔/改流水/删流水、新建账本、新增/删除自定义分类 |
 | profile | 更新档案、修改密码 |
 | admin | 管理员建号、改角色、停用/启用、生成邀请码 |
+| agent | 经 AI 记一笔/改备注/删流水(与业务 service 自身 ledger 审计**双写**)、修改 AI 配置、技能启停 |
 
 ## 对应前端实现
 

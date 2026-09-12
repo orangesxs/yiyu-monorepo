@@ -31,6 +31,8 @@
   /* 应用身份色(--app-admin 管理后台:石板灰,系统/控制台语义,与生活应用的彩色区分) */
   --app-ledger: #409eff;
   --app-admin: #64748b;
+  /* AI 助手身份色(紫,AI 语义;悬浮球/抽屉/快捷 chips) */
+  --app-agent: #7c5cff;
 
   /* 动效 */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);

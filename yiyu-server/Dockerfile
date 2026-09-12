@@ -6,6 +6,9 @@ FROM node:22-alpine AS build
 WORKDIR /app
 # 启用 corepack 以获得 pnpm
 RUN corepack enable
+# 国内网络:pnpm 与 corepack(pnpm 本体下载)统一走 npm 镜像源
+ENV COREPACK_NPM_REGISTRY=https://registry.npmmirror.com \
+    NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
 # 先只拷清单文件,利用 Docker 层缓存:依赖不变则跳过安装
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile

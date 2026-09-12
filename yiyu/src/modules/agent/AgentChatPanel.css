@@ -1,0 +1,135 @@
+/* Agent 聊天抽屉主面板 */
+.agent-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: var(--gap-4, 12px);
+}
+
+.agent-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 0;
+}
+
+.agent-panel__title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.agent-panel__name {
+  font-weight: 600;
+  font-size: var(--fs-body, 15px);
+  color: var(--text-1, inherit);
+}
+
+.agent-panel__sub {
+  font-size: var(--fs-caption, 12px);
+  color: var(--text-3, #999);
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2, #666);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.icon-btn:hover {
+  background: color-mix(in srgb, var(--app-agent, #7c5cff) 12%, transparent);
+  color: var(--app-agent, #7c5cff);
+}
+
+.agent-panel__notice {
+  margin: 0 4px 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-card, 12px);
+  background: color-mix(in srgb, var(--color-warning, #e6a23c) 12%, transparent);
+  color: var(--color-warning, #e6a23c);
+  font-size: var(--fs-caption, 12px);
+  text-align: center;
+}
+
+.agent-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px;
+}
+
+/* 气泡 */
+.bubble {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: var(--fs-body, 14px);
+  line-height: 1.65;
+  word-break: break-word;
+  white-space: pre-wrap;
+  animation: rise-in 0.2s ease;
+}
+
+.bubble--user {
+  align-self: flex-end;
+  background: var(--app-agent, #7c5cff);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.bubble--assistant {
+  align-self: flex-start;
+  background: var(--bg-card, #f5f5f7);
+  color: var(--text-1, #222);
+  border-bottom-left-radius: 4px;
+}
+
+.bubble__cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--text-2, #888);
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.bubble__thinking {
+  color: var(--text-3, #999);
+}
+
+/* 工具执行行 */
+.tool-row {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 88%;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--text-3, #aaa) 40%, transparent);
+  font-size: var(--fs-caption, 12px);
+  color: var(--text-3, #888);
+}
+
+.tool-row__ok {
+  color: var(--color-income, #67c23a);
+}
+
+.tool-row__err {
+  color: var(--color-expense, #f56c6c);
+}

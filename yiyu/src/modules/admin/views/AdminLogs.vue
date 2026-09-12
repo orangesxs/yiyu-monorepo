@@ -100,6 +100,10 @@ function operatorOf(l: AdminLogDto) {
 
     <!-- 筛选区 -->
     <div class="yiyu-card filter-bar">
+      <el-radio-group :model-value="moduleFilter === 'agent' ? 'agent' : 'all'" @update:model-value="(v: string | number | boolean | undefined) => (moduleFilter = v === 'agent' ? 'agent' : '')" class="filter-tabs">
+        <el-radio-button value="all">系统日志</el-radio-button>
+        <el-radio-button value="agent">AI 操作日志</el-radio-button>
+      </el-radio-group>
       <el-select v-model="moduleFilter" placeholder="模块" clearable class="filter-select">
         <el-option v-for="(label, key) in moduleLabels" :key="key" :label="label" :value="key" />
       </el-select>

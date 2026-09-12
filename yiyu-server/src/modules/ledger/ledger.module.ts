@@ -6,5 +6,6 @@ import { LedgerService } from './ledger.service'
 @Module({
   controllers: [LedgerController],
   providers: [LedgerService],
+  exports: [LedgerService], // agent 模块的技能直接函数调用 service(权限校验内聚其中)
 })
 export class LedgerModule {}

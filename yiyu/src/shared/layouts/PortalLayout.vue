@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import AgentFab from '@/modules/agent/components/AgentFab.vue'
 import { useUserStore } from '../stores/user'
 import { useThemeStore } from '../stores/theme'
 
@@ -56,6 +57,7 @@ function onCommand(cmd: string | number | object) {
     <main class="portal-main">
       <router-view />
     </main>
+    <AgentFab />
   </div>
 </template>
 

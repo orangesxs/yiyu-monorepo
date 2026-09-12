@@ -3,7 +3,7 @@ import { IsIn, IsOptional, IsString, Length, Matches, MaxLength } from 'class-va
 /** GET /admin/logs 查询参数 */
 export class QueryLogsDto {
   @IsOptional()
-  @IsIn(['auth', 'ledger', 'profile', 'admin'], { message: '模块筛选非法' })
+  @IsIn(['auth', 'ledger', 'profile', 'admin', 'agent'], { message: '模块筛选非法' })
   module?: string
 
   @IsOptional()

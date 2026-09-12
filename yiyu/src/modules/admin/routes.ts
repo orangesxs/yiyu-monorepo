@@ -32,6 +32,24 @@ export const adminRoutes: RouteRecordRaw[] = [
         component: () => import('./views/AdminInvites.vue'),
         meta: { app: 'admin', title: '邀请码', requiresAuth: true, requiresAdmin: true },
       },
+      {
+        path: 'ai-config',
+        name: 'admin-ai-config',
+        component: () => import('./views/AdminAiConfig.vue'),
+        meta: { app: 'admin', title: 'AI 设置', requiresAuth: true, requiresAdmin: true },
+      },
+      {
+        path: 'agent-skills',
+        name: 'admin-agent-skills',
+        component: () => import('./views/AdminAgentSkills.vue'),
+        meta: { app: 'admin', title: '技能管理', requiresAuth: true, requiresAdmin: true },
+      },
+      {
+        path: 'agent-usage',
+        name: 'admin-agent-usage',
+        component: () => import('./views/AdminAgentUsage.vue'),
+        meta: { app: 'admin', title: 'AI 用量', requiresAuth: true, requiresAdmin: true },
+      },
     ],
   },
 ]

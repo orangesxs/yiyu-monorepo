@@ -7,6 +7,10 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped          # 异常退出或服务器重启后自动拉起(手动 stop 的除外)
+    ports:
+      # 暴露到宿主机,本地 Prisma CLI / psql 可直连 localhost:5432
+      # ⚠️ 仅本地开发用;若部署到公网服务器,删掉这两行,避免数据库暴露
+      - "5432:5432"
     environment:
       POSTGRES_USER: yiyu                      # 初始化建的数据库用户
       POSTGRES_PASSWORD: ${DB_PASSWORD:-yiyu_test_2026}   # 密码来自 .env 的 DB_PASSWORD,冒号后为缺省值

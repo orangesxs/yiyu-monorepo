@@ -8,5 +8,6 @@ import { PortalService } from './portal.service'
   imports: [PrismaModule],
   controllers: [PortalController],
   providers: [PortalService],
+  exports: [PortalService], // agent 开场白复用 summary 拼装
 })
 export class PortalModule {}
