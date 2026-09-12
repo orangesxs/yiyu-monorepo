@@ -28,8 +28,20 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script_stop: true          # 任一命令失败即整体失败
           script: |
+            set -e
             cd /root/yiyu-monorepo
-            git pull --ff-only
+            # 服务器直连 GitHub 不稳(GnuTLS/超时常见):重试 3 次,仍失败则中止部署,
+            # 避免旧代码构建成功造成"Actions 绿勾但线上没更新"的假象
+            for i in 1 2 3; do
+              if git pull --ff-only; then break; fi
+              [ "$i" = "3" ] && { echo "::error::git pull 三次均失败,中止部署(服务器到 GitHub 网络异常)"; exit 1; }
+              echo "git pull 失败,5 秒后重试($i/3)…"; sleep 5
+            done
+            HEAD=$(git rev-parse --short HEAD)
+            echo "部署提交: $HEAD"
             cd deploy
             docker compose up -d --build
             docker compose ps
+            # 验证容器实际在跑新代码:后端健康检查返回即认为服务起来了
+            sleep 5
+            curl -sf http://localhost/api/health > /dev/null && echo "健康检查通过" || { echo "::error::后端健康检查失败"; docker compose logs --tail 30 server; exit 1; }
