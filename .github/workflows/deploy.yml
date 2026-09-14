@@ -26,16 +26,17 @@ jobs:
           host: ${{ vars.DEPLOY_HOST }}
           username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script_stop: true          # 任一命令失败即整体失败
           script: |
             set -e
             cd /root/yiyu-monorepo
-            # 服务器直连 GitHub 不稳(GnuTLS/超时常见):重试 3 次,仍失败则中止部署,
-            # 避免旧代码构建成功造成"Actions 绿勾但线上没更新"的假象
-            for i in 1 2 3; do
+            # 服务器直连 GitHub 不稳,两类典型报错:
+            #   curl 16 HTTP2 framing layer → 强制 HTTP/1.1 规避(GnuTLS 下 HTTP/2 常见)
+            #   GnuTLS recv -110 / 连接超时 → 多次重试,5 次通 1 次即可完成部署
+            git config http.version HTTP/1.1
+            for i in 1 2 3 4 5; do
               if git pull --ff-only; then break; fi
-              [ "$i" = "3" ] && { echo "::error::git pull 三次均失败,中止部署(服务器到 GitHub 网络异常)"; exit 1; }
-              echo "git pull 失败,5 秒后重试($i/3)…"; sleep 5
+              [ "$i" = "5" ] && { echo "::error::git pull 五次均失败,中止部署(服务器到 GitHub 网络异常)"; exit 1; }
+              echo "git pull 失败,$((i*10)) 秒后重试($i/5)…"; sleep $((i*10))
             done
             HEAD=$(git rev-parse --short HEAD)
             echo "部署提交: $HEAD"
