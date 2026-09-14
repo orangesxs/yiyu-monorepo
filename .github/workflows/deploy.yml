@@ -1,11 +1,18 @@
-# 「一隅」自动部署:push 到 main → SSH 到服务器拉最新代码并重建容器
+# 「一隅」自动部署:push 到 main → Actions 触发 → SSH 到服务器从 Gitee 拉最新代码并重建容器
+#
+# 为什么拉 Gitee 而不是 GitHub:
+#   服务器(阿里云)直连 github.com 极不稳(TLS 中断/超时/HTTP2 framing 错误,已实测无解),
+#   改从 Gitee 拉取(国内骨干网,秒通)。GitHub 仓库保留:触发部署 + 代码备份 + Actions 历史。
+#   本地需双推(origin=GitHub + gitee),否则服务器部署到旧代码。
 #
 # 前置条件(已配置):
 #   仓库 Secrets:
 #     - DEPLOY_SSH_KEY : 部署专用 SSH 私钥(公钥已追加到服务器 ~/.ssh/authorized_keys)
 #   仓库 Variables:
 #     - DEPLOY_HOST : 服务器公网 IP
-#   服务器上:/root/yiyu-monorepo 已完成首次手动部署(deploy/.env 已生成)
+#   服务器上:
+#     - /root/yiyu-monorepo 已完成首次手动部署(deploy/.env 已生成)
+#     - ~/.ssh/gitee_deploy 部署私钥,公钥已添加到 Gitee 仓库「管理→部署公钥」(只读)
 name: Deploy
 
 on:
@@ -29,14 +36,20 @@ jobs:
           script: |
             set -e
             cd /root/yiyu-monorepo
-            # 服务器直连 GitHub 不稳,两类典型报错:
-            #   curl 16 HTTP2 framing layer → 强制 HTTP/1.1 规避(GnuTLS 下 HTTP/2 常见)
-            #   GnuTLS recv -110 / 连接超时 → 多次重试,5 次通 1 次即可完成部署
-            git config http.version HTTP/1.1
-            for i in 1 2 3 4 5; do
+            # 幂等自愈:remote 指向 Gitee + 部署私钥 + 主机指纹(首次自动补齐,之后为空操作)
+            GITEE_URL="git@gitee.com:orange-up/yiyu.git"
+            if [ "$(git remote get-url origin)" != "$GITEE_URL" ]; then
+              echo "origin 指向 $(git remote get-url origin),切换为 Gitee…"
+              git remote set-url origin "$GITEE_URL"
+            fi
+            if ! grep -q "gitee_deploy" ~/.ssh/config 2>/dev/null; then
+              printf 'Host gitee.com\n  IdentityFile ~/.ssh/gitee_deploy\n  IdentitiesOnly yes\n  StrictHostKeyChecking accept-new\n' >> ~/.ssh/config
+            fi
+            # Gitee 国内可达,一般一次即通;保留 3 次重试兜底
+            for i in 1 2 3; do
               if git pull --ff-only; then break; fi
-              [ "$i" = "5" ] && { echo "::error::git pull 五次均失败,中止部署(服务器到 GitHub 网络异常)"; exit 1; }
-              echo "git pull 失败,$((i*10)) 秒后重试($i/5)…"; sleep $((i*10))
+              [ "$i" = "3" ] && { echo "::error::git pull 三次均失败,中止部署(检查服务器 ~/.ssh/gitee_deploy 私钥与 Gitee 部署公钥配置)"; exit 1; }
+              echo "git pull 失败,5 秒后重试($i/3)…"; sleep 5
             done
             HEAD=$(git rev-parse --short HEAD)
             echo "部署提交: $HEAD"
