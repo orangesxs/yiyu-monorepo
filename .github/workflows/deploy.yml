@@ -1,23 +1,13 @@
-# 「一隅」自动部署:push 到 main → Actions 触发 → SSH 到服务器从 Gitee 拉最新代码并重建容器
+# 「一隅」备用部署:仅手动触发(workflow_dispatch),push 已不再自动部署
 #
-# 为什么拉 Gitee 而不是 GitHub:
-#   服务器(阿里云)直连 github.com 极不稳(TLS 中断/超时/HTTP2 framing 错误,已实测无解),
-#   改从 Gitee 拉取(国内骨干网,秒通)。GitHub 仓库保留:触发部署 + 代码备份 + Actions 历史。
-#   本地需双推(origin=GitHub + gitee),否则服务器部署到旧代码。
-#
-# 前置条件(已配置):
-#   仓库 Secrets:
-#     - DEPLOY_SSH_KEY : 部署专用 SSH 私钥(公钥已追加到服务器 ~/.ssh/authorized_keys)
-#   仓库 Variables:
-#     - DEPLOY_HOST : 服务器公网 IP
-#   服务器上:
-#     - /root/yiyu-monorepo 已完成首次手动部署(deploy/.env 已生成)
-#     - ~/.ssh/gitee_deploy 部署私钥,公钥已添加到 Gitee 仓库「管理→部署公钥」(只读)
+# 自动部署已切换为 Gitee WebHook → 服务器 webhook 容器执行 deploy/webhook/deploy.sh
+# (链路:push Gitee → Gitee 回调 http://服务器/webhook/deploy → 校验签名 → git pull + 重建)
+# 本 workflow 保留作应急通道:Actions 页面手动 Run workflow 时经 SSH 在服务器执行同一脚本。
+# 前提:服务器 /root/yiyu-monorepo 的 origin 已指向 Gitee(脚本同样幂等自愈)。
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy-production

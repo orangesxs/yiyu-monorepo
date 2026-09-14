@@ -59,6 +59,24 @@ services:
     depends_on:
       - server
 
+  # ── WebHook 自动部署:Gitee push 回调 → 校验签名 → 执行 deploy.sh ──
+  # 详见 webhook/server.js;经挂载 docker.sock 操作兄弟容器(非 DinD)
+  webhook:
+    build: ./webhook
+    restart: unless-stopped
+    environment:
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      DEPLOY_SCRIPT: /app/deploy.sh
+    volumes:
+      # 服务器仓库目录:deploy.sh 在这里面 git pull
+      - /root/yiyu-monorepo:/repo
+      # 让容器内 docker CLI 直接管理宿主机 Docker(构建/重建 db server web)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # git 拉取 Gitee 用服务器上的部署私钥(含 known_hosts/config 自动补写)
+      - /root/.ssh:/root/.ssh
+    # 写操作需要(改 ssh config、git pull 更新工作区)
+    user: root
+
 # 命名卷:持久化 PostgreSQL 数据
 volumes:
   pgdata:
