@@ -98,6 +98,64 @@ describe('Admin (e2e)', () => {
     expect(me.body.message).toContain('自己')
   })
 
+  it('重置密码:旧密码失效、新密码可登录;禁自重置;落安全日志', async () => {
+    // 重置临时用号密码
+    const reset = await request(app.getHttpServer())
+      .post(`/api/admin/users/${tempUserId}/reset-password`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ password: 'newpass654321' })
+    expect(reset.status).toBe(201)
+
+    // 旧密码不能再登录
+    const oldLogin = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ username: `${prefix}tmp`, password: 'temp123456' })
+    expect(oldLogin.status).toBe(401)
+
+    // 新密码可登录(login 为 @HttpCode(200))
+    const newLogin = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ username: `${prefix}tmp`, password: 'newpass654321' })
+    expect(newLogin.status).toBe(200)
+
+    // 密码过短 → 400
+    const short = await request(app.getHttpServer())
+      .post(`/api/admin/users/${tempUserId}/reset-password`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ password: '12345' })
+    expect(short.status).toBe(400)
+
+    // 禁自重置(管理员自己 → 400)
+    const meUser = await prisma.user.findUnique({ where: { username: 'admin' } })
+    const self = await request(app.getHttpServer())
+      .post(`/api/admin/users/${meUser!.id}/reset-password`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ password: 'whatever123' })
+    expect(self.status).toBe(400)
+    expect(self.body.message).toContain('自己')
+
+    // 普通用户调用 → 403
+    const forbidden = await request(app.getHttpServer())
+      .post(`/api/admin/users/${tempUserId}/reset-password`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ password: 'whatever123' })
+    expect(forbidden.status).toBe(403)
+
+    // 落安全日志
+    const logs = await request(app.getHttpServer())
+      .get('/api/admin/logs?module=admin&action=security&pageSize=50')
+      .set('Authorization', `Bearer ${adminToken}`)
+    const resetLog = logs.body.data.items.find((l: any) => l.summary.includes('重置') && l.summary.includes('临时用户'))
+    expect(resetLog).toBeTruthy()
+
+    // 还原密码,保证后续用例(停用验证)仍用原密码登录
+    const restore = await request(app.getHttpServer())
+      .post(`/api/admin/users/${tempUserId}/reset-password`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ password: 'temp123456' })
+    expect(restore.status).toBe(201)
+  })
+
   it('改角色+停用:成功且落安全日志', async () => {
     const role = await request(app.getHttpServer())
       .patch(`/api/admin/users/${tempUserId}`)

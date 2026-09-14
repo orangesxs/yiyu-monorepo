@@ -154,3 +154,24 @@
     flex-direction: column;
   }
 }
+
+/* 重置密码弹窗 */
+.reset-tip {
+  --el-alert-bg-color: color-mix(in srgb, var(--color-warning, #e6a23c) 10%, transparent);
+}
+.reset-form {
+  margin-top: 16px;
+}
+.reset-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+.reset-username {
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+}
+.reset-regen {
+  margin-top: 8px;
+}

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { AdminService } from './admin.service'
-import { AdminCreateUserDto, AdminUpdateUserDto, QueryLogsDto } from './dto/admin.dto'
+import { AdminCreateUserDto, AdminResetPasswordDto, AdminUpdateUserDto, QueryLogsDto } from './dto/admin.dto'
 import { AdminGuard } from '../../common/guards/admin.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import type { User } from '@prisma/client'
@@ -33,6 +33,15 @@ export class AdminController {
     @Body() dto: AdminUpdateUserDto,
   ) {
     return this.admin.updateUser(user.id, id, dto)
+  }
+
+  @Post('users/:id/reset-password')
+  resetPassword(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: AdminResetPasswordDto,
+  ) {
+    return this.admin.resetPassword(user.id, id, dto)
   }
 
   /* ── 系统日志 ── */

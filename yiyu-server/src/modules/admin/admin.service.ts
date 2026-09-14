@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { AuditService } from '../../common/audit/audit.service'
 import { fmtDate, fmtDateTime } from '../../common/utils/datetime'
-import type { AdminCreateUserDto, AdminUpdateUserDto, QueryLogsDto } from './dto/admin.dto'
+import type { AdminCreateUserDto, AdminResetPasswordDto, AdminUpdateUserDto, QueryLogsDto } from './dto/admin.dto'
 
 @Injectable()
 export class AdminService {
@@ -101,6 +101,25 @@ export class AdminService {
           : `管理员启用了「${target.nickname}」的账号`,
       )
     }
+    return { ok: true }
+  }
+
+  /** 重置密码:管理员设置新密码(前端支持随机生成),落安全日志;禁自重置(自己走个人中心改密) */
+  async resetPassword(operatorId: string, targetId: string, dto: AdminResetPasswordDto) {
+    if (operatorId === targetId) {
+      throw new BadRequestException('不能重置自己的密码,请在个人中心修改')
+    }
+    const target = await this.prisma.user.findUnique({ where: { id: targetId } })
+    if (!target) throw new NotFoundException('用户不存在')
+
+    const passwordHash = await bcrypt.hash(dto.password, 10)
+    await this.prisma.user.update({ where: { id: targetId }, data: { passwordHash } })
+    await this.audit.record(
+      'admin',
+      'security',
+      operatorId,
+      `管理员重置了「${target.nickname}」的登录密码`,
+    )
     return { ok: true }
   }
 

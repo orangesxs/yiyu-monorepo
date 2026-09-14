@@ -48,6 +48,11 @@ export const useAdminStore = defineStore('admin', () => {
     if (target) target.status = status
   }
 
+  /** 重置用户密码(管理员设置新密码,前端支持随机生成) */
+  async function resetUserPassword(id: string, password: string) {
+    await adminApi.resetPassword(id, password)
+  }
+
   /** 日志列表(服务端分页;由 AdminLogs 页自行保存 items) */
   async function fetchLogs(params: {
     page?: number
@@ -68,6 +73,6 @@ export const useAdminStore = defineStore('admin', () => {
     users, usersLoaded,
     dashboard, dashboardLoaded,
     fetchDashboard, fetchUsers, fetchLogs,
-    userById, addUser, setUserRole, setUserStatus, operatorName,
+    userById, addUser, setUserRole, setUserStatus, resetUserPassword, operatorName,
   }
 })

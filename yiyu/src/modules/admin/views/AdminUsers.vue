@@ -109,6 +109,54 @@ async function submitAdd() {
     addSaving.value = false
   }
 }
+
+/* ---- 重置密码弹窗(自己不可重置,走个人中心改密) ---- */
+const resetVisible = ref(false)
+const resetSaving = ref(false)
+const resetTarget = ref<SystemUserDto | null>(null)
+const resetPassword = ref('')
+
+/** 随机密码:去除易混字符(I/L/O/0/1),10 位,含大小写与数字 */
+function randomPassword(): string {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  let pwd = ''
+  const cryptoObj = window.crypto ?? null
+  if (cryptoObj) {
+    const buf = new Uint32Array(10)
+    cryptoObj.getRandomValues(buf)
+    for (const v of buf) pwd += chars[v % chars.length]
+  } else {
+    for (let i = 0; i < 10; i++) pwd += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return pwd
+}
+
+function openReset(u: SystemUserDto) {
+  resetTarget.value = u
+  resetPassword.value = randomPassword()
+  resetVisible.value = true
+}
+
+async function submitReset() {
+  const target = resetTarget.value
+  if (!target) return
+  const pwd = resetPassword.value
+  if (pwd.length < 6) return ElMessage.warning('新密码至少 6 位')
+  resetSaving.value = true
+  try {
+    await adminStore.resetUserPassword(target.id, pwd)
+    resetVisible.value = false
+    ElMessageBox.alert(
+      `「${target.name}」的新密码为:${pwd}\n请通过安全渠道告知用户,并提醒尽快登录修改。`,
+      '重置成功',
+      { confirmButtonText: '我已知晓', type: 'success' },
+    )
+  } catch {
+    /* 错误由请求层提示 */
+  } finally {
+    resetSaving.value = false
+  }
+}
 </script>
 
 <template>
@@ -155,6 +203,15 @@ async function submitAdd() {
           <span class="user-meta num">@{{ u.username }} · 注册 {{ u.registeredAt }} · 最近活跃 {{ u.lastActiveAt }}</span>
         </div>
         <div class="user-actions">
+          <el-button
+            size="small"
+            type="primary"
+            plain
+            :disabled="isSelf(u)"
+            @click="openReset(u)"
+          >
+            重置密码
+          </el-button>
           <el-button
             size="small"
             :type="u.role === 'user' ? 'warning' : 'primary'"
@@ -221,6 +278,37 @@ async function submitAdd() {
       <template #footer>
         <el-button @click="addVisible = false">取消</el-button>
         <el-button type="primary" :loading="addSaving" @click="submitAdd">创建</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 重置密码弹窗 -->
+    <el-dialog v-model="resetVisible" title="重置密码" width="420px">
+      <template v-if="resetTarget">
+        <el-alert
+          type="warning"
+          :closable="false"
+          show-icon
+          title="重置后用户当前密码立即失效"
+          description="若用户正处于登录状态,下一次请求将被强制登出。请通过安全渠道把新密码告知用户,并提醒尽快登录修改。"
+          class="reset-tip"
+        />
+        <el-form label-position="top" class="reset-form">
+          <el-form-item label="用户">
+            <div class="reset-user">
+              <span class="user-avatar">{{ resetTarget.avatar }}</span>
+              <span>{{ resetTarget.name }}</span>
+              <span class="reset-username num">@{{ resetTarget.username }}</span>
+            </div>
+          </el-form-item>
+          <el-form-item label="新密码">
+            <el-input v-model="resetPassword" type="text" placeholder="至少 6 位" />
+            <el-button size="small" class="reset-regen" @click="resetPassword = randomPassword()">随机生成</el-button>
+          </el-form-item>
+        </el-form>
+      </template>
+      <template #footer>
+        <el-button @click="resetVisible = false">取消</el-button>
+        <el-button type="primary" :loading="resetSaving" @click="submitReset">确认重置</el-button>
       </template>
     </el-dialog>
   </div>

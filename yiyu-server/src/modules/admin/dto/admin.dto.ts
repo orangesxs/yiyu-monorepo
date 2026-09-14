@@ -56,3 +56,10 @@ export class AdminUpdateUserDto {
   @IsIn(['active', 'disabled'], { message: '状态非法' })
   status?: 'active' | 'disabled'
 }
+
+/** POST /admin/users/:id/reset-password:管理员重置用户密码 */
+export class AdminResetPasswordDto {
+  @IsString()
+  @Length(6, 64, { message: '新密码至少 6 位' })
+  password: string
+}

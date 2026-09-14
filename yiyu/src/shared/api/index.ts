@@ -207,6 +207,8 @@ export const adminApi = {
     post<SystemUserDto>('/admin/users', data),
   updateUser: (id: string, data: { role?: 'admin' | 'user'; status?: 'active' | 'disabled' }) =>
     patch<{ ok: boolean }>(`/admin/users/${id}`, data),
+  resetPassword: (id: string, password: string) =>
+    post<{ ok: boolean }>(`/admin/users/${id}/reset-password`, { password }),
   listLogs: (params: {
     page?: number
     pageSize?: number
