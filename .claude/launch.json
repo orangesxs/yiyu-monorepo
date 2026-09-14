@@ -6,28 +6,28 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173,
-      "cwd": "/Users/sxs/Desktop/ad/yiyu/yiyu"
+      "cwd": "C:\\Users\\an\\Desktop\\my\\yiyu"
     },
     {
       "name": "yiyu-dev-alt",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "dev", "--", "--port", "5174"],
       "port": 5174,
-      "cwd": "/Users/sxs/Desktop/ad/yiyu/yiyu"
+      "cwd": "C:\\Users\\an\\Desktop\\my\\yiyu"
     },
     {
       "name": "yiyu-preview",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "preview", "--", "--port", "4173"],
       "port": 4173,
-      "cwd": "/Users/sxs/Desktop/ad/yiyu/yiyu"
+      "cwd": "C:\\Users\\an\\Desktop\\my\\yiyu"
     },
     {
       "name": "yiyu-server",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["run", "start:dev"],
       "port": 3000,
-      "cwd": "/Users/sxs/Desktop/ad/yiyu/yiyu-server"
+      "cwd": "C:\\Users\\an\\Desktop\\my\\yiyu-server"
     }
   ]
 }
